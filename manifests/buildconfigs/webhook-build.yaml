@@ -1,0 +1,35 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: webhook-build
+  namespace: daaxh25-dev
+  labels:
+    app: webhook-demo
+    environment: development
+    managed-by: iac
+  annotations:
+    description: "BuildConfig with GitHub webhook trigger"
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/pdaxh/ocp-trial.git
+      ref: main
+    contextDir: examples/webhook-app
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: webhook-demo:latest
+  triggers:
+  - type: ConfigChange
+  - type: GitHub
+    github:
+      secret: github-webhook-secret
+  - type: Generic
+    generic:
+      secret: generic-webhook-secret
+  runPolicy: Serial

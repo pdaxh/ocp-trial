@@ -1,0 +1,41 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: nodejs-s2i-build
+  namespace: daaxh25-dev
+  labels:
+    app: nodejs-demo
+    environment: development
+    managed-by: iac
+  annotations:
+    description: "BuildConfig for Node.js application using Source-to-Image"
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/pdaxh/ocp-trial.git
+      ref: main
+    contextDir: examples/nodejs-app
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: nodejs:18-ubi8
+        namespace: openshift
+      env:
+      - name: NPM_MIRROR
+        value: "https://registry.npmjs.org/"
+  output:
+    to:
+      kind: ImageStreamTag
+      name: nodejs-demo:latest
+  triggers:
+  - type: ConfigChange
+  - type: ImageChange
+    imageChange:
+      from:
+        kind: ImageStreamTag
+        name: nodejs:18-ubi8
+        namespace: openshift
+  runPolicy: Serial

@@ -1,0 +1,35 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: nginx-dockerfile-build
+  namespace: daaxh25-dev
+  labels:
+    app: nginx-demo
+    environment: development
+    managed-by: iac
+  annotations:
+    description: "BuildConfig for nginx application using Dockerfile"
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/pdaxh/ocp-trial.git
+      ref: main
+    contextDir: examples/dockerfile-app
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: nginx-demo:latest
+  triggers:
+  - type: ConfigChange
+  - type: ImageChange
+    imageChange:
+      from:
+        kind: ImageStreamTag
+        name: nginx:latest
+        namespace: openshift
+  runPolicy: Serial
