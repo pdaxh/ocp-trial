@@ -1,0 +1,112 @@
+name: Deploy to OpenShift
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'manifests/**'
+      - 'scripts/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+        - development
+        - staging
+        - production
+
+jobs:
+  deploy:
+    name: Deploy to OpenShift
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'development' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup OpenShift CLI
+      run: |
+        echo "🔧 Setting up OpenShift CLI..."
+        curl -L https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz | tar xz
+        sudo mv oc /usr/local/bin/
+        oc version --client
+        
+    - name: Login to OpenShift
+      run: |
+        echo "🔐 Logging into OpenShift..."
+        oc login --token=${{ secrets.OPENSHIFT_TOKEN }} --server=${{ secrets.OPENSHIFT_SERVER }}
+        oc whoami
+        
+    - name: Verify cluster access
+      run: |
+        echo "🔍 Verifying cluster access..."
+        oc get projects
+        oc project ${{ secrets.OPENSHIFT_PROJECT }}
+        
+    - name: Make scripts executable
+      run: |
+        chmod +x scripts/*.sh
+        
+    - name: Run pre-deployment checks
+      run: |
+        echo "🔍 Running pre-deployment checks..."
+        
+        # Validate manifests
+        find manifests/ -name "*.yaml" -o -name "*.yml" | while read file; do
+          echo "Validating $file"
+          oc apply --dry-run=client -f "$file"
+        done
+        
+        echo "✅ Pre-deployment checks passed!"
+        
+    - name: Deploy application
+      run: |
+        echo "🚀 Deploying application to OpenShift..."
+        
+        # Deploy using our script
+        ./scripts/deploy.sh
+        
+        echo "✅ Deployment completed!"
+        
+    - name: Verify deployment
+      run: |
+        echo "🔍 Verifying deployment..."
+        
+        # Wait for deployment to be ready
+        oc wait --for=condition=available deployment/nginx-demo --timeout=300s
+        
+        # Check pod status
+        oc get pods -l app=nginx-demo
+        
+        # Get route information
+        ROUTE_URL=$(oc get route nginx-route -o jsonpath='{.spec.host}')
+        echo "🌐 Application is available at: https://$ROUTE_URL"
+        
+        # Test the application
+        curl -I https://$ROUTE_URL || echo "⚠️ Application might still be starting up"
+        
+        echo "✅ Deployment verification completed!"
+        
+    - name: Update deployment status
+      run: |
+        echo "📊 Deployment Summary:"
+        echo "- Environment: ${{ github.event.inputs.environment || 'development' }}"
+        echo "- Commit: ${{ github.sha }}"
+        echo "- Branch: ${{ github.ref_name }}"
+        echo "- Deployed by: ${{ github.actor }}"
+        echo "- Deployment URL: https://$(oc get route nginx-route -o jsonpath='{.spec.host}')"
+        
+    - name: Notify deployment success
+      if: success()
+      run: |
+        echo "🎉 Deployment to ${{ github.event.inputs.environment || 'development' }} successful!"
+        
+    - name: Notify deployment failure
+      if: failure()
+      run: |
+        echo "❌ Deployment to ${{ github.event.inputs.environment || 'development' }} failed!"
+        echo "Please check the logs and fix the issues."

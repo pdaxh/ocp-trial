@@ -1,0 +1,100 @@
+name: Cleanup OpenShift Resources
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_cleanup:
+        description: 'Type "yes" to confirm cleanup'
+        required: true
+        default: 'no'
+        type: string
+      environment:
+        description: 'Environment to cleanup'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+        - development
+        - staging
+        - production
+
+jobs:
+  cleanup:
+    name: Cleanup OpenShift Resources
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'development' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Verify cleanup confirmation
+      run: |
+        if [ "${{ github.event.inputs.confirm_cleanup }}" != "yes" ]; then
+          echo "❌ Cleanup not confirmed. Please type 'yes' to confirm."
+          exit 1
+        fi
+        echo "✅ Cleanup confirmed for environment: ${{ github.event.inputs.environment || 'development' }}"
+        
+    - name: Setup OpenShift CLI
+      run: |
+        echo "🔧 Setting up OpenShift CLI..."
+        curl -L https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz | tar xz
+        sudo mv oc /usr/local/bin/
+        oc version --client
+        
+    - name: Login to OpenShift
+      run: |
+        echo "🔐 Logging into OpenShift..."
+        oc login --token=${{ secrets.OPENSHIFT_TOKEN }} --server=${{ secrets.OPENSHIFT_SERVER }}
+        oc whoami
+        
+    - name: Verify cluster access
+      run: |
+        echo "🔍 Verifying cluster access..."
+        oc get projects
+        oc project ${{ secrets.OPENSHIFT_PROJECT }}
+        
+    - name: List resources before cleanup
+      run: |
+        echo "📋 Resources before cleanup:"
+        oc get all -l app=nginx-demo || echo "No resources found"
+        
+    - name: Make scripts executable
+      run: |
+        chmod +x scripts/*.sh
+        
+    - name: Run cleanup script
+      run: |
+        echo "🧹 Running cleanup script..."
+        echo "yes" | ./scripts/cleanup.sh
+        
+    - name: Verify cleanup
+      run: |
+        echo "🔍 Verifying cleanup..."
+        
+        # Check if resources are deleted
+        if oc get all -l app=nginx-demo 2>/dev/null; then
+          echo "⚠️ Some resources still exist"
+          oc get all -l app=nginx-demo
+        else
+          echo "✅ All resources have been cleaned up successfully!"
+        fi
+        
+    - name: Update cleanup status
+      run: |
+        echo "📊 Cleanup Summary:"
+        echo "- Environment: ${{ github.event.inputs.environment || 'development' }}"
+        echo "- Cleaned by: ${{ github.actor }}"
+        echo "- Cleanup time: $(date)"
+        
+    - name: Notify cleanup success
+      if: success()
+      run: |
+        echo "🎉 Cleanup of ${{ github.event.inputs.environment || 'development' }} completed successfully!"
+        
+    - name: Notify cleanup failure
+      if: failure()
+      run: |
+        echo "❌ Cleanup of ${{ github.event.inputs.environment || 'development' }} failed!"
+        echo "Please check the logs and fix the issues."

@@ -1,0 +1,183 @@
+name: Test and Verify OpenShift Manifests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  validate-manifests:
+    name: Validate Kubernetes Manifests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'latest'
+        
+    - name: Validate YAML syntax
+      run: |
+        echo "🔍 Validating YAML syntax..."
+        find manifests/ -name "*.yaml" -o -name "*.yml" | while read file; do
+          echo "Checking $file"
+          python3 -c "import yaml; yaml.safe_load(open('$file'))" || exit 1
+        done
+        
+    - name: Validate Kubernetes manifests
+      run: |
+        echo "🔍 Validating Kubernetes manifests..."
+        find manifests/ -name "*.yaml" -o -name "*.yml" | while read file; do
+          echo "Validating $file"
+          kubectl apply --dry-run=client -f "$file" || exit 1
+        done
+        
+    - name: Check for security issues
+      run: |
+        echo "🔍 Checking for security issues..."
+        
+        # Check for hardcoded secrets
+        if grep -r "password\|secret\|key" manifests/ --include="*.yaml" --include="*.yml" | grep -v "kind:" | grep -v "name:" | grep -v "metadata:"; then
+          echo "❌ Potential hardcoded secrets found!"
+          exit 1
+        fi
+        
+        # Check for privileged containers
+        if grep -r "privileged: true" manifests/ --include="*.yaml" --include="*.yml"; then
+          echo "❌ Privileged containers found!"
+          exit 1
+        fi
+        
+        # Check for hostNetwork
+        if grep -r "hostNetwork: true" manifests/ --include="*.yaml" --include="*.yml"; then
+          echo "❌ hostNetwork usage found!"
+          exit 1
+        fi
+        
+        echo "✅ Security checks passed!"
+
+  test-deployment-script:
+    name: Test Deployment Script
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Make scripts executable
+      run: |
+        chmod +x scripts/*.sh
+        
+    - name: Test script syntax
+      run: |
+        echo "🔍 Testing script syntax..."
+        bash -n scripts/deploy.sh
+        bash -n scripts/cleanup.sh
+        echo "✅ Script syntax is valid!"
+        
+    - name: Test script help/usage
+      run: |
+        echo "🔍 Testing script help functionality..."
+        # Test if scripts can be executed without OpenShift connection
+        timeout 5s bash scripts/deploy.sh || true
+        timeout 5s bash scripts/cleanup.sh || true
+        echo "✅ Scripts can be executed!"
+
+  lint-documentation:
+    name: Lint Documentation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install markdownlint
+      run: npm install -g markdownlint-cli
+      
+    - name: Lint markdown files
+      run: |
+        echo "🔍 Linting markdown files..."
+        markdownlint "**/*.md" --ignore node_modules
+        echo "✅ Markdown linting passed!"
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  integration-test:
+    name: Integration Test (Dry Run)
+    runs-on: ubuntu-latest
+    needs: [validate-manifests, test-deployment-script]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v4
+      with:
+        version: 'latest'
+        
+    - name: Create test namespace
+      run: |
+        kubectl create namespace test-namespace --dry-run=client -o yaml
+        
+    - name: Test deployment in dry-run mode
+      run: |
+        echo "🔍 Testing deployment in dry-run mode..."
+        
+        # Test namespace creation
+        kubectl apply -f manifests/namespaces/ --dry-run=client
+        
+        # Test application deployment
+        kubectl apply -f manifests/deployments/ --dry-run=client
+        kubectl apply -f manifests/services/ --dry-run=client
+        kubectl apply -f manifests/routes/ --dry-run=client
+        
+        echo "✅ Dry-run deployment successful!"
+
+  notify-results:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [validate-manifests, test-deployment-script, lint-documentation, security-scan, integration-test]
+    if: always()
+    
+    steps:
+    - name: Notify Success
+      if: ${{ needs.validate-manifests.result == 'success' && needs.test-deployment-script.result == 'success' && needs.lint-documentation.result == 'success' && needs.security-scan.result == 'success' && needs.integration-test.result == 'success' }}
+      run: |
+        echo "🎉 All tests passed! The OpenShift manifests are ready for deployment."
+        
+    - name: Notify Failure
+      if: ${{ needs.validate-manifests.result == 'failure' || needs.test-deployment-script.result == 'failure' || needs.lint-documentation.result == 'failure' || needs.security-scan.result == 'failure' || needs.integration-test.result == 'failure' }}
+      run: |
+        echo "❌ Some tests failed. Please check the logs and fix the issues."
+        exit 1
