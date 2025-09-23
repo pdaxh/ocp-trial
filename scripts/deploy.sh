@@ -42,13 +42,8 @@ print_status "Starting deployment to OpenShift cluster..."
 CURRENT_PROJECT=$(oc project -q)
 print_status "Current project: $CURRENT_PROJECT"
 
-# Create namespace
-print_status "Creating namespace..."
-oc apply -f manifests/namespaces/
-
-# Wait for namespace to be ready
-print_status "Waiting for namespace to be ready..."
-oc wait --for=condition=Ready namespace/demo-namespace --timeout=60s
+# Using existing project (no namespace creation needed in Developer Sandbox)
+print_status "Using existing project: $CURRENT_PROJECT"
 
 # Deploy application
 print_status "Deploying application..."
@@ -58,14 +53,14 @@ oc apply -f manifests/routes/
 
 # Wait for deployment to be ready
 print_status "Waiting for deployment to be ready..."
-oc wait --for=condition=available deployment/nginx-demo -n demo-namespace --timeout=300s
+oc wait --for=condition=available deployment/nginx-demo -n $CURRENT_PROJECT --timeout=300s
 
 # Get route information
 print_status "Getting route information..."
-ROUTE_URL=$(oc get route nginx-route -n demo-namespace -o jsonpath='{.spec.host}')
+ROUTE_URL=$(oc get route nginx-route -n $CURRENT_PROJECT -o jsonpath='{.spec.host}')
 print_status "Application is available at: https://$ROUTE_URL"
 
 # Show deployment status
 print_status "Deployment completed successfully!"
-print_status "To check the status, run: oc get all -n demo-namespace"
-print_status "To view logs, run: oc logs deployment/nginx-demo -n demo-namespace"
+print_status "To check the status, run: oc get all -n $CURRENT_PROJECT"
+print_status "To view logs, run: oc logs deployment/nginx-demo -n $CURRENT_PROJECT"

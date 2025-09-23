@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-demo
-  namespace: demo-namespace
+  namespace: daaxh25-dev
   labels:
     app: nginx-demo
     environment: development
@@ -18,9 +18,13 @@ spec:
         app: nginx-demo
         environment: development
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1014140000
+        fsGroup: 1014140000
       containers:
       - name: nginx
-        image: nginx:1.21
+        image: nginxinc/nginx-unprivileged:1.21
         ports:
         - containerPort: 80
         resources:
@@ -36,9 +40,3 @@ spec:
             port: 80
           initialDelaySeconds: 30
           periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 5

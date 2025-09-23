@@ -2,7 +2,7 @@ apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
   name: nginx-route
-  namespace: demo-namespace
+  namespace: daaxh25-dev
   labels:
     app: nginx-demo
     environment: development
