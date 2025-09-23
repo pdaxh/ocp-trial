@@ -1,0 +1,46 @@
+# OpenShift/Kubernetes
+*.kubeconfig
+*.yaml.bak
+*.yml.bak
+kustomization.yaml.bak
+
+# Secrets and sensitive files
+*-secret.yaml
+*-secret.yml
+secrets/
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Backup files
+*.bak
+*.backup
+
+# Helm
+charts/
+Chart.lock
+
+# Terraform (if used)
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Ansible (if used)
+*.retry

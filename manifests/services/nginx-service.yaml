@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: demo-namespace
+  labels:
+    app: nginx-demo
+    environment: development
+    managed-by: iac
+spec:
+  selector:
+    app: nginx-demo
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+    name: http
+  type: ClusterIP

@@ -1,0 +1,20 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: nginx-route
+  namespace: demo-namespace
+  labels:
+    app: nginx-demo
+    environment: development
+    managed-by: iac
+spec:
+  host: nginx-demo-demo-namespace.apps.rm1.0a51.p1.openshiftapps.com
+  to:
+    kind: Service
+    name: nginx-service
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

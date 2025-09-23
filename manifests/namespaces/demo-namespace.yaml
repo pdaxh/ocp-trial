@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo-namespace
+  labels:
+    name: demo-namespace
+    environment: development
+    managed-by: iac
+  annotations:
+    description: "Demo namespace for OpenShift trial"
+    contact: "daniel.axhammar@logikfabriken.se"
