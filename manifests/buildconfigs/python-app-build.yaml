@@ -1,0 +1,37 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: python-app-build
+  namespace: daaxh25-dev
+  labels:
+    app: python-app
+    environment: development
+    managed-by: iac
+    source-repo: ULP
+  annotations:
+    description: "BuildConfig for Python Flask application from ULP repository"
+    source-repository: "https://github.com/your-org/ULP"
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/pdaxh/python-app  # TODO: Update with actual repository URL
+      ref: main
+    contextDir: .  # Adjust based on your repository structure
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Docker/Dockerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: python-app:latest
+  triggers:
+  - type: ConfigChange
+  - type: ImageChange
+    imageChange:
+      from:
+        kind: ImageStreamTag
+        name: python:3.9
+        namespace: openshift
+  runPolicy: Serial

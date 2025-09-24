@@ -1,0 +1,50 @@
+# BuildConfig Template for Python Applications
+# Copy this file and customize for your specific Python application repository
+
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: python-app-build
+  namespace: daaxh25-dev
+  labels:
+    app: python-app
+    environment: development
+    managed-by: iac
+  annotations:
+    description: "BuildConfig for Python Flask application"
+    source-repository: "REPLACE_WITH_YOUR_REPO_URL"
+spec:
+  source:
+    type: Git
+    git:
+      # TODO: Replace with your actual repository URL
+      uri: https://github.com/your-username/your-python-app-repo.git
+      ref: main  # or your preferred branch
+      # If your app is in a subdirectory, specify it here:
+      # contextDir: python-app
+  strategy:
+    type: Docker
+    dockerStrategy:
+      # Adjust path to your Dockerfile
+      dockerfilePath: Docker/Dockerfile
+      # Optional: Add build arguments
+      # buildArgs:
+      # - name: BUILD_ARG
+      #   value: "value"
+  output:
+    to:
+      kind: ImageStreamTag
+      name: python-app:latest
+  triggers:
+  - type: ConfigChange
+  - type: ImageChange
+    imageChange:
+      from:
+        kind: ImageStreamTag
+        name: python:3.9
+        namespace: openshift
+  # Optional: Add webhook triggers
+  # - type: GitHub
+  #   github:
+  #     secret: github-webhook-secret
+  runPolicy: Serial

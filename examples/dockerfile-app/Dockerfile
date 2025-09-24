@@ -7,9 +7,8 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # Copy static content
 COPY html/ /usr/share/nginx/html/
 
-# Create non-root user (using smaller UID for Alpine compatibility)
-RUN addgroup -g 1001 -S nginx && \
-    adduser -u 1001 -S -G nginx nginx
+# Use existing nginx user (already exists in nginx:alpine)
+# Just ensure it has the right permissions
 
 # Set proper permissions
 RUN chown -R nginx:nginx /var/cache/nginx && \
