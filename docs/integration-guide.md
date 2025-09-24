@@ -26,7 +26,7 @@ spec:
   source:
     type: Git
     git:
-      uri: https://github.com/your-org/ULP.git
+      uri: https://github.com/your-org/your-repository.git
       contextDir: python-app
 ```
 
@@ -80,7 +80,7 @@ Update the BuildConfig to point to your actual ULP repository:
 spec:
   source:
     git:
-      uri: https://github.com/your-actual-org/ULP.git
+      uri: https://github.com/your-org/your-repository.git
 ```
 
 ### 2. Create Application Deployment Manifests

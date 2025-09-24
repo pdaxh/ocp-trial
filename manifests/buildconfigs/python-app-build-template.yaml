@@ -12,13 +12,13 @@ metadata:
     managed-by: iac
   annotations:
     description: "BuildConfig for Python Flask application"
-    source-repository: "REPLACE_WITH_YOUR_REPO_URL"
+    source-repository: "https://github.com/your-org/your-repository"
 spec:
   source:
     type: Git
     git:
       # TODO: Replace with your actual repository URL
-      uri: https://github.com/your-username/your-python-app-repo.git
+      uri: https://github.com/your-org/your-repository.git
       ref: main  # or your preferred branch
       # If your app is in a subdirectory, specify it here:
       # contextDir: python-app

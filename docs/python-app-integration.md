@@ -38,7 +38,7 @@ spec:
   source:
     type: Git
     git:
-      uri: https://github.com/your-username/your-python-app-repo.git
+      uri: https://github.com/your-org/your-repository.git
       ref: main
       contextDir: .  # or subdirectory if needed
   strategy:
@@ -75,12 +75,12 @@ oc start-build python-app-build --follow
 source:
   type: Git
   git:
-    uri: https://github.com/your-username/repo.git
+      uri: https://github.com/your-org/your-repository.git
     ref: main                    # Branch or tag
     contextDir: python-app       # Subdirectory (optional)
   # Optional: Use specific commit
   # git:
-  #   uri: https://github.com/your-username/repo.git
+  #   uri: https://github.com/your-org/your-repository.git
   #   ref: abc123def456
 ```
 

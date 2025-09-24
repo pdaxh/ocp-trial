@@ -10,7 +10,7 @@ metadata:
     source-repo: ULP
   annotations:
     description: "BuildConfig for Python Flask application from ULP repository"
-    source-repository: "https://github.com/your-org/ULP"
+    source-repository: "https://github.com/your-org/your-repository"
 spec:
   source:
     type: Git
