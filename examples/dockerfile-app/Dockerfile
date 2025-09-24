@@ -7,9 +7,9 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # Copy static content
 COPY html/ /usr/share/nginx/html/
 
-# Create non-root user
-RUN addgroup -g 1014140000 -S nginx && \
-    adduser -u 1014140000 -S -G nginx nginx
+# Create non-root user (using smaller UID for Alpine compatibility)
+RUN addgroup -g 1001 -S nginx && \
+    adduser -u 1001 -S -G nginx nginx
 
 # Set proper permissions
 RUN chown -R nginx:nginx /var/cache/nginx && \
